@@ -17,16 +17,17 @@ namespace MyWebApi.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<ItemDTO> GetItems()
+        public async Task<IEnumerable<ItemDTO>> GetItemsAsync()
         {
-            var items = repository.GetItems().Select( item => item.AsDto());
+            var items = (await repository.GetItemsAsync()).
+                        Select( item => item.AsDto());
             return items;
         }
 
         [HttpGet("{id}")]
-        public ActionResult<ItemDTO> GetItem(Guid id)
+        public async Task<ActionResult<ItemDTO>> GetItemAsync(Guid id)
         {
-            var item = repository.GetItem(id);
+            var item = await repository.GetItemAsync(id);
 
             if (item is null)
                 return NotFound();
@@ -35,7 +36,7 @@ namespace MyWebApi.Controllers
         }
 
         [HttpPost]
-        public ActionResult<ItemDTO> CreateItem(CreateItemDTO itemDto)
+        public async Task<ActionResult<ItemDTO>> CreateItemAsync(CreateItemDTO itemDto)
         {
             Item item = new()
             {
@@ -45,39 +46,40 @@ namespace MyWebApi.Controllers
                 CreatedDate = DateTime.UtcNow
             };
 
-            repository.CreateItem(item);
+            if (!await repository.CreateItemAsync(item))
+                return BadRequest(new { Error = "Object already contains." });
 
-            return CreatedAtAction(nameof(GetItem), new { id = item.Id }, item.AsDto());
+            return CreatedAtAction(nameof(GetItemAsync), new { id = item.Id }, item.AsDto());
         }
 
         [HttpPut("{id}")]
-        public ActionResult UpdateItem(Guid id, UpdateItemDTO itemDto)
+        public async Task<ActionResult> UpdateItemAsync(Guid id, UpdateItemDTO itemDto)
         {
-            var existingItem = repository.GetItem(id);
+            var existingItem = repository.GetItemAsync(id);
 
             if (existingItem is null)
                 return NotFound();
 
-            Item updatedItem = existingItem with
+            Item updatedItem = await existingItem with
             {
                 Name = itemDto.Name,
                 Price = itemDto.Price
             };
 
-            repository.UpdateItem(updatedItem);
+            await repository.UpdateItemAsync(updatedItem);
 
             return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public ActionResult DeleteItem(Guid id)
+        public async Task<ActionResult> DeleteItemAsync(Guid id)
         {
-            var item = repository.GetItem(id);
+            var item = await repository.GetItemAsync(id);
 
             if (item is null)
                 return NotFound();
 
-            repository.DeleteItem(id);
+            await repository.DeleteItemAsync(id);
 
             return NoContent();
         }

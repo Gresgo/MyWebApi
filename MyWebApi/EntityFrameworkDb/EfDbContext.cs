@@ -17,9 +17,9 @@ namespace MyWebApi.EntityFrameworkDb
         /// </summary>
         /// <param name="id">Id предмета.</param>
         /// <returns></returns>
-        public Item GetItem(Guid id)
+        public async Task<Item?> GetItemAsync(Guid id)
         {
-            var item = Items.FirstOrDefault(x => x.Id == id);
+            var item = await Items.SingleOrDefaultAsync(x => x.Id == id);
             return item;
         }
 
@@ -28,15 +28,15 @@ namespace MyWebApi.EntityFrameworkDb
         /// </summary>
         /// <param name="item">Предмет для добавления.</param>
         /// <returns>True - если удалось добавить, false - если предмет с таким Id уже существует.</returns>
-        public bool AddItem(Item item)
+        public async Task<bool> AddItemAsync(Item item)
         {
-            var existingItem = GetItem(item.Id);
-            if(existingItem != null)
-                return false;
+            var existingItem = await Items.SingleOrDefaultAsync(x => x.Id == item.Id || x.Name == item.Name);
+            if (existingItem != null)
+                return await Task.FromResult(false);
 
-            Items.Add(item);
-            SaveChanges();
-            return true;
+            await Items.AddAsync(item);
+            await SaveChangesAsync();
+            return await Task.FromResult(true);
         }
 
         /// <summary>
@@ -44,15 +44,15 @@ namespace MyWebApi.EntityFrameworkDb
         /// </summary>
         /// <param name="id">Id предмета для удаления.</param>
         /// <returns>True - если предмет удалён, false - если предмет с таким Id не найден.</returns>
-        public bool RemoveItem(Guid id)
+        public async Task<bool> RemoveItemAsync(Guid id)
         {
-            var existingItem = GetItem(id);
+            var existingItem = await GetItemAsync(id);
             if (existingItem is null)
-                return false;
+                return await Task.FromResult(false);
 
             Items.Remove(existingItem);
-            SaveChanges();
-            return true;
+            await SaveChangesAsync();
+            return await Task.FromResult(true);
         }
 
         /// <summary>
@@ -61,19 +61,22 @@ namespace MyWebApi.EntityFrameworkDb
         /// <param name="id"></param>
         /// <param name="item">Предмет на который будет изменён существующий предмет.</param>
         /// <returns>True - если предмет успешно изменён, false - если предмет с таким Id не найден.</returns>
-        public bool ChangeItem(Item item)
+        public async Task<bool> ChangeItemAsync(Item item)
         {
-            var existingItem = GetItem(item.Id);
+            var existingItem = await GetItemAsync(item.Id);
             if (existingItem is null)
-                return false;
+                return await Task.FromResult(false);
 
-            existingItem = existingItem with
-            {
-                Name = item.Name,
-                Price = item.Price
-            };
-            SaveChanges();
-            return true;
+            Items.Remove(existingItem);
+            await Items.AddAsync(item);
+
+            await SaveChangesAsync();
+            return await Task.FromResult(true);
+        }
+
+        public async Task<IEnumerable<Item>> GetAllItemsAsync()
+        {
+            return await Task.FromResult(Items);
         }
     }
 }

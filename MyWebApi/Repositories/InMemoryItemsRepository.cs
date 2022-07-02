@@ -12,31 +12,44 @@ namespace MyWebApi.Repositories
             new Item() {Id = Guid.NewGuid(), Name = "Iron Sword", Price = 55, CreatedDate = DateTime.UtcNow}
         };
 
-        public IEnumerable<Item> GetItems()
+        public async Task<IEnumerable<Item>> GetItemsAsync()
         {
-            return items;
+            return await Task.FromResult(items);
         }
 
-        public Item GetItem(Guid id)
+        public async Task<Item>? GetItemAsync(Guid id)
         {
-            return items.Where(x => x.Id == id).SingleOrDefault();
+            var item = items.Where(x => x.Id == id).SingleOrDefault();
+            return await Task.FromResult(item);
         }
 
-        public void CreateItem(Item item)
+        public async Task<bool> CreateItemAsync(Item item)
         {
+            if (items.SingleOrDefault(x => x.Id == item.Id || x.Name == item.Name) != null)
+                return await Task.FromResult(false);
+
             items.Add(item);
+            return await Task.FromResult(true);
         }
 
-        public void UpdateItem(Item item)
+        public async Task<bool> UpdateItemAsync(Item item)
         {
             var index = items.FindIndex(x => x.Id == item.Id);
+            if (index == -1)
+                return await Task.FromResult(false);
+
             items[index] = item;
+            return await Task.FromResult(true);
         }
 
-        public void DeleteItem(Guid id)
+        public async Task<bool> DeleteItemAsync(Guid id)
         {
             var index = items.FindIndex(x => x.Id == id);
+            if (index == -1)
+                return await Task.FromResult(false);
+
             items.RemoveAt(index);
+            return await Task.FromResult(true);
         }
     }
 }

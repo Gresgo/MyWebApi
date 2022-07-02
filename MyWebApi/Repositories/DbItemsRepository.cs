@@ -13,30 +13,31 @@ namespace MyWebApi.Repositories
             db = new EfDbContext();
         }
 
-        public void CreateItem(Item item)
+        public async Task<bool> CreateItemAsync(Item item)
         {
-            db.AddItem(item);
+            return await db.AddItemAsync(item);
         }
 
-        public void DeleteItem(Guid id)
+        public async Task<bool> DeleteItemAsync(Guid id)
         {
-            db.RemoveItem(id);
+            return await db.RemoveItemAsync(id);
         }
 
-        public Item GetItem(Guid id)
+        public async Task<Item?> GetItemAsync(Guid id)
         {
-            var item = db.GetItem(id);
+            var item = await db.GetItemAsync(id);
             return item;
         }
 
-        public IEnumerable<Item> GetItems()
+        public async Task<IEnumerable<Item>> GetItemsAsync()
         {
-            return db.Items;
+            var items = await db.GetAllItemsAsync();
+            return await Task.FromResult(items);
         }
 
-        public void UpdateItem(Item item)
+        public async Task<bool> UpdateItemAsync(Item item)
         {
-            db.ChangeItem(item);
+            return await db.ChangeItemAsync(item);
         }
     }
 }
