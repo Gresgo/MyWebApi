@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MyWebApi.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,7 @@ builder.Services.AddControllers(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IItemsRepository, DbItemsRepository>();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -27,6 +29,14 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = (_) => true
+}); 
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = (_) => true
+}); 
 
 app.Run();
 

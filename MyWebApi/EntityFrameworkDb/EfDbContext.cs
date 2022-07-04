@@ -31,7 +31,7 @@ namespace MyWebApi.EntityFrameworkDb
         public async Task<bool> AddItemAsync(Item item)
         {
             var existingItem = await Items.SingleOrDefaultAsync(x => x.Id == item.Id || x.Name == item.Name);
-            if (existingItem != null)
+            if (existingItem is not null)
                 return await Task.FromResult(false);
 
             await Items.AddAsync(item);
