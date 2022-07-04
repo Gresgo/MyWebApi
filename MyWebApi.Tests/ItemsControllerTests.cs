@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using MyWebApi.Controllers;
-using MyWebApi.DTOs;
+using MyWebApi.Dtos;
 using MyWebApi.Entities;
 using MyWebApi.Repositories;
 
@@ -37,7 +37,7 @@ namespace MyWebApi.Tests
 
             var result = await controller.GetItemAsync(Guid.NewGuid());
 
-            result.Value.Should().BeEquivalentTo(expectedItem, options => options.ComparingByMembers<Item>());
+            result.Value.Should().BeEquivalentTo(expectedItem);
         }
 
         [Fact]
@@ -49,25 +49,22 @@ namespace MyWebApi.Tests
 
             var actualItems = await controller.GetItemsAsync();
 
-            actualItems.Should().BeEquivalentTo(expectedItems, options => options.ComparingByMembers<Item>());
+            actualItems.Should().BeEquivalentTo(expectedItems);
         }
 
 
         [Fact]
         public async Task CreateItemAsync_WithItemToCreate_ReturnsCreatedItem()
         {
-            var itemToCreate = new CreateItemDTO()
-            {
-                Name = Guid.NewGuid().ToString(),
-                Price = rnd.Next(10000)
-            };
+            var itemToCreate = new CreateItemDto(Guid.NewGuid().ToString(), "", rnd.Next(10000));
+
             repositoryStub.Setup(repo => repo.CreateItemAsync(It.IsAny<Item>())).ReturnsAsync(true);
             var controller = new ItemsController(repositoryStub.Object, loggerStub.Object);
 
             var result = await controller.CreateItemAsync(itemToCreate);
 
-            var createdItem = (result.Result as CreatedAtActionResult).Value as ItemDTO;
-            itemToCreate.Should().BeEquivalentTo(createdItem, options => options.ComparingByMembers<ItemDTO>().ExcludingMissingMembers());
+            var createdItem = (result.Result as CreatedAtActionResult).Value as ItemDto;
+            itemToCreate.Should().BeEquivalentTo(createdItem, options => options.ComparingByMembers<ItemDto>().ExcludingMissingMembers());
             createdItem.Id.Should().NotBeEmpty();
             createdItem.CreatedDate.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMilliseconds(1000));
         }
@@ -79,11 +76,7 @@ namespace MyWebApi.Tests
             repositoryStub.Setup(repo => repo.GetItemAsync(It.IsAny<Guid>())).ReturnsAsync(existingItem);
 
             var itemId = existingItem.Id;
-            var itemToUpdate = new UpdateItemDTO()
-            {
-                Name = Guid.NewGuid().ToString(),
-                Price = existingItem.Price + 5
-            };
+            var itemToUpdate = new UpdateItemDto(Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), existingItem.Price + 5);
 
             var controller = new ItemsController(repositoryStub.Object, loggerStub.Object);
 
@@ -106,12 +99,36 @@ namespace MyWebApi.Tests
             result.Should().BeOfType<NoContentResult>();
         }
 
+        [Fact]
+        public async Task GetItemsAsync_WithMatchingItems_ReturnsMatchingItems()
+        {
+            var allItems = new[] { 
+                new Item() {Name = "Potion"},
+                new Item() {Name = "Super potion"},
+                new Item() {Name = "Sword"},
+                new Item() {Name = "Helmet"},
+                new Item() {Name = "Mega potion"}
+            };
+            var nameToMatch = "Potion";
+
+            repositoryStub.Setup(repo => repo.GetItemsAsync()).ReturnsAsync(allItems);
+
+            var controller = new ItemsController(repositoryStub.Object, loggerStub.Object);
+
+            IEnumerable<ItemDto> foundItems = await controller.GetItemsAsync(nameToMatch);
+
+            foundItems.Should().OnlyContain(item => item.Name == allItems[0].Name 
+            || item.Name == allItems[1].Name
+            || item.Name == allItems[4].Name);
+        }
+
         private Item CreateRandomItem()
         {
             return new Item()
             {
                 Id = Guid.NewGuid(),
                 Name = Guid.NewGuid().ToString(),
+                Description = Guid.NewGuid().ToString(),
                 Price = rnd.Next(10000),
                 CreatedDate = DateTime.UtcNow
             };
